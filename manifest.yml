@@ -21,6 +21,7 @@ launch:
         - provision-db-tier:
             action: compute.grow
             parameters:
+                phase: provision
                 roleName: db-node
             output:
                  db-hosts: ips
@@ -28,6 +29,7 @@ launch:
         - provision-app-tier:
             action: compute.grow
             parameters:
+                phase: provision
                 roleName: app-node
                 quantity: ${app-tier-size}
             output:
@@ -36,6 +38,7 @@ launch:
         - provision-lb:
             action: compute.grow
             parameters:
+                phase: provision
                 roleName: lb-node
             output:
                 lb-hosts: ips
@@ -44,6 +47,7 @@ launch:
             action: mysql.install
             parameters:
                 phase: install-db
+                precedingPhases: [ provision ]
                 roles: [ db-node ]
  
  
@@ -51,12 +55,14 @@ launch:
             action: tomcat.install
             parameters:
                 phase: install-app
+                precedingPhases: [ provision ]
                 roles: [ app-node ]
  
         - install-lb:
             action: haproxy.install
             parameters:
                 phase: install-lb
+                precedingPhases: [ provision ]
                 roles: [ lb-node ]
  
         - deploy-database:
@@ -138,6 +144,7 @@ scale-up:
             parameters:
                 roleName: app-node
                 quantity: ${app-count}
+                phase: [ provision ]
             output:
                 app-hosts: ips
  
@@ -145,6 +152,8 @@ scale-up:
             action: tomcat.install
             parameters:
                 phase: install-app
+                phase: deployapp
+                precedingPhases: [ provision ]
                 roles: [ app-node ]
  
         - deploy-app:
@@ -174,6 +183,7 @@ scale-up:
         - update-lb:
             action: haproxy.rebalance
             parameters:
+                phase: deploy-db
                 precedingPhases: [ deploy-app ]
                 roles: [ lb-node ]
                 jattrs:
@@ -191,6 +201,7 @@ scale-down:
         - shrink-app-tier:
             action: compute.shrink
             parameters:
+                phase: destroy
                 roleName: app-node
                 quantity: ${app-count}
  
